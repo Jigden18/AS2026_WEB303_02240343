@@ -1,0 +1,86 @@
+services:
+  # ---------- Tutor service (Service B) + its own database ----------
+  tutor-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${TUTOR_DB_USER}
+      POSTGRES_PASSWORD: ${TUTOR_DB_PASSWORD}
+      POSTGRES_DB: ${TUTOR_DB_NAME}
+    volumes:
+      - tutor-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TUTOR_DB_USER} -d ${TUTOR_DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  tutor-service:
+    build:
+      context: .
+      dockerfile: service-b/Dockerfile
+    environment:
+      TUTOR_GRPC_PORT: ${TUTOR_GRPC_PORT}
+      DB_HOST: tutor-db
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${TUTOR_DB_USER}
+      DB_PASSWORD: ${TUTOR_DB_PASSWORD}
+      DB_NAME: ${TUTOR_DB_NAME}
+    depends_on:
+      tutor-db:
+        condition: service_healthy
+
+  # ---------- Session service (Service A) + its own database ----------
+  session-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${SESSION_DB_USER}
+      POSTGRES_PASSWORD: ${SESSION_DB_PASSWORD}
+      POSTGRES_DB: ${SESSION_DB_NAME}
+    volumes:
+      - session-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SESSION_DB_USER} -d ${SESSION_DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  session-service:
+    build:
+      context: .
+      dockerfile: service-a/Dockerfile
+    environment:
+      SESSION_GRPC_PORT: ${SESSION_GRPC_PORT}
+      TUTOR_SERVICE_ADDR: tutor-service:${TUTOR_GRPC_PORT}
+      DB_HOST: session-db
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${SESSION_DB_USER}
+      DB_PASSWORD: ${SESSION_DB_PASSWORD}
+      DB_NAME: ${SESSION_DB_NAME}
+      TUTOR_TIMEOUT_MS: ${TUTOR_TIMEOUT_MS}
+      TUTOR_MAX_RETRIES: ${TUTOR_MAX_RETRIES}
+      CB_FAILURE_THRESHOLD: ${CB_FAILURE_THRESHOLD}
+      CB_OPEN_SECONDS: ${CB_OPEN_SECONDS}
+    depends_on:
+      session-db:
+        condition: service_healthy
+      tutor-service:
+        condition: service_started
+
+  # ---------- API Gateway (the only published port) ----------
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      GATEWAY_PORT: ${GATEWAY_PORT}
+      TUTOR_SERVICE_ADDR: tutor-service:${TUTOR_GRPC_PORT}
+      SESSION_SERVICE_ADDR: session-service:${SESSION_GRPC_PORT}
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    depends_on:
+      - tutor-service
+      - session-service
+
+volumes:
+  tutor-db-data:
+  session-db-data:
