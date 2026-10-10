@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package tutor;
+
+option go_package = "tutorsessions/gen/tutorpb;tutorpb";
+
+message Tutor {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string subject = 4;
+  double hourly_rate = 5;
+}
+
+message CreateTutorRequest {
+  string name = 1;
+  string email = 2;
+  string subject = 3;
+  double hourly_rate = 4;
+}
+
+message GetTutorRequest { string id = 1; }
+
+message UpdateTutorRequest {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string subject = 4;
+  double hourly_rate = 5;
+}
+
+message DeleteTutorRequest { string id = 1; }
+message DeleteTutorResponse { bool success = 1; }
+
+service TutorService {
+  rpc CreateTutor(CreateTutorRequest) returns (Tutor);
+  rpc GetTutor(GetTutorRequest) returns (Tutor);
+  rpc UpdateTutor(UpdateTutorRequest) returns (Tutor);
+  rpc DeleteTutor(DeleteTutorRequest) returns (DeleteTutorResponse);
+}

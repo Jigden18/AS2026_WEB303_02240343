@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package session;
+
+option go_package = "tutorsessions/gen/sessionpb;sessionpb";
+
+message Session {
+  string id = 1;
+  string tutor_id = 2;
+  string tutor_name = 3;        // filled in by calling Tutor service
+  string student_name = 4;
+  string session_date = 5;      // format YYYY-MM-DD
+  int32 duration_minutes = 6;
+}
+
+message CreateSessionRequest {
+  string tutor_id = 1;
+  string student_name = 2;
+  string session_date = 3;
+  int32 duration_minutes = 4;
+}
+
+message GetSessionRequest { string id = 1; }
+
+message UpdateSessionRequest {
+  string id = 1;
+  string student_name = 2;
+  string session_date = 3;
+  int32 duration_minutes = 4;
+}
+
+message DeleteSessionRequest { string id = 1; }
+message DeleteSessionResponse { bool success = 1; }
+
+service SessionService {
+  rpc CreateSession(CreateSessionRequest) returns (Session);
+  rpc GetSession(GetSessionRequest) returns (Session);
+  rpc UpdateSession(UpdateSessionRequest) returns (Session);
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+}
